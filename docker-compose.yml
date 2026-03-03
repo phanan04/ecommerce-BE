@@ -1,0 +1,48 @@
+# Prerequisites:
+#   - Clone ecommerce-FE repo alongside this repo:
+#     ../ecommerce-FE  (https://github.com/phanan04/ecommerce-FE)
+#   - Then run: docker-compose up --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce_postgres
+    environment:
+      POSTGRES_DB: ecommerce_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: ecommerce_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecommerce_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      APP_JWT_SECRET: c2VjcmV0S2V5Rm9yRWNvbW1lcmNlQXBwbGljYXRpb25TcHJpbmdCb290MjAyNg==
+      APP_CORS_ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ../ecommerce-FE
+    container_name: ecommerce_frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:
